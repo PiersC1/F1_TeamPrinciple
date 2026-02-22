@@ -1,0 +1,45 @@
+{
+    "team_name": "Player Racing",
+    "season": 1,
+    "current_race_index": 0,
+    "finance_manager": {
+        "balance": 140000000,
+        "cost_cap": 140000000,
+        "spent_under_cap": 0
+    },
+    "car": {
+        "aero": {
+            "downforce": 50,
+            "drag_efficiency": 50
+        },
+        "chassis": {
+            "weight_reduction": 50,
+            "tire_preservation": 50
+        },
+        "powertrain": {
+            "power_output": 50,
+            "reliability": 80
+        }
+    },
+    "drivers": [
+        {
+            "id": "97837da2-ce33-443b-95db-3d5c39ecca91",
+            "name": "Player Driver 1",
+            "salary": 5000000,
+            "rating": 85,
+            "speed": 88,
+            "consistency": 90,
+            "tire_management": 80
+        },
+        {
+            "id": "8128b492-d903-44d9-8601-22b0e3ac6689",
+            "name": "Player Driver 2",
+            "salary": 2000000,
+            "rating": 75,
+            "speed": 78,
+            "consistency": 70,
+            "tire_management": 75
+        }
+    ],
+    "technical_director": null
+}
