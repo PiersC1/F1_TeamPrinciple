@@ -1,5 +1,6 @@
-# FastAPI Server & Routes
+# API Layer
 
-This module serves as the entry point for the Web Application replacement of the Pygame client.
+The API layer is built using FastAPI. It acts as the bridge between the React frontend and the Python simulation engine.
 
-`main.py` bootstraps a locally-hosted Uvicorn REST server. It imports the monolithic `GameState` tracker and exposes the Python simulation logic to the React frontend through simple JSON endpoints over HTTP.
+## Key Files:
+- **`main.py`**: The primary FastAPI application. It defines the REST endpoints for loading games, advancing time, simulating races, and interacting with the Staff Market. It maintains an in-memory instance of the `GameState` while the server is running.

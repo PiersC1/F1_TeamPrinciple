@@ -37,7 +37,7 @@ const TechNode = ({ data }) => {
                 <h4 className="font-bold text-sm leading-tight pr-2 truncate">{node.name}</h4>
                 {node.state === 'AVAILABLE' && (
                     <span className="text-[10px] font-black bg-yellow-500/20 px-1 py-0.5 rounded text-yellow-500 shrink-0">
-                        ${(node.cost / 1000000).toFixed(1)}M
+                        {node.rp_cost} RP
                     </span>
                 )}
             </div>
@@ -47,9 +47,15 @@ const TechNode = ({ data }) => {
             <div className="flex justify-between items-end">
                 <div className="flex flex-col gap-1 text-[10px] font-mono bg-black/40 p-1.5 rounded w-full">
                     <div className="flex justify-between border-b border-white/10 pb-1 mb-1">
-                        <span className="text-slate-400">Time:</span>
-                        <span className="font-bold">{node.time_to_complete} RACES</span>
+                        <span className="text-slate-400">Req. Work:</span>
+                        <span className="font-bold">{node.base_workload}</span>
                     </div>
+                    {node.state === 'IN_PROGRESS' && (
+                        <div className="flex justify-between border-b border-white/10 pb-1 mb-1 text-f1accent">
+                            <span>Invested:</span>
+                            <span className="font-bold">{Math.floor(node.invested_work)} / {node.base_workload}</span>
+                        </div>
+                    )}
                     {Object.entries(node.effects).map(([key, val]) => (
                         <div key={key} className={`flex items-center justify-between font-bold ${val > 0 ? 'text-f1green' : 'text-f1red'}`}>
                             <div className="flex items-center gap-1">
@@ -123,6 +129,26 @@ const RDTree = ({ gameState, onNavigate, refreshState }) => {
         }
     };
 
+    const handleAllocate = async (nodeId, currentAmount, change) => {
+        try {
+            const response = await fetch('http://localhost:8000/api/rd/allocate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ node_id: nodeId, new_amount: currentAmount + change })
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                setErrorMsg(error.detail || "Failed to allocate engineers");
+                setTimeout(() => setErrorMsg(""), 3000);
+            } else {
+                refreshState();
+            }
+        } catch (err) {
+            console.error(err);
+        }
+    };
+
     // Memoize the node types
     const nodeTypes = useMemo(() => ({ techNode: TechNode }), []);
 
@@ -162,18 +188,17 @@ const RDTree = ({ gameState, onNavigate, refreshState }) => {
 
         const layouted = getLayoutedElements(flowNodes, flowEdges, 'LR');
         return { initialNodes: layouted.nodes, initialEdges: layouted.edges };
-    }, [rawNodes, rd_manager.active_project]);
+    }, [rawNodes]);
 
     // Setup ReactFlow state hooks
     const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
     const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
 
-    // Update the layout if the raw nodes change (e.g. state changes meaning color updates)
     useEffect(() => {
         const layouted = getLayoutedElements(initialNodes, initialEdges, 'LR');
         setNodes(layouted.nodes);
         setEdges(layouted.edges);
-    }, [rawNodes, rd_manager.active_project, setNodes, setEdges, initialNodes, initialEdges]);
+    }, [rawNodes, setNodes, setEdges, initialNodes, initialEdges]);
 
     return (
         <div className="flex flex-col h-full bg-slate-900 overflow-hidden">
@@ -196,8 +221,11 @@ const RDTree = ({ gameState, onNavigate, refreshState }) => {
                 </div>
 
                 <div className="text-right pointer-events-auto bg-slate-900/80 p-4 rounded-xl backdrop-blur-sm border border-slate-700">
-                    <p className="text-slate-400 text-sm uppercase tracking-widest mb-1">Available Budget</p>
-                    <p className="text-3xl font-bold text-f1green">${finance_manager.balance.toLocaleString()}</p>
+                    <p className="text-slate-400 text-sm uppercase tracking-widest mb-1">Resource Points</p>
+                    <p className="text-3xl font-bold text-f1accent flex items-center justify-end gap-2">
+                        <Activity size={24} />
+                        {rd_manager.resource_points}
+                    </p>
                 </div>
             </div>
 
@@ -228,6 +256,55 @@ const RDTree = ({ gameState, onNavigate, refreshState }) => {
                         <div className="flex items-center gap-2"><div className="w-3 h-3 bg-yellow-500 rounded-sm"></div> Available to Purchase</div>
                         <div className="flex items-center gap-2"><div className="w-3 h-3 bg-slate-700 rounded-sm"></div> Dependencies Not Met</div>
                         <div className="flex items-center gap-2"><div className="w-3 h-3 bg-f1red/50 rounded-sm"></div> Path Locked</div>
+                    </div>
+                </div>
+
+                {/* Active Projects Overlay */}
+                <div className="absolute bottom-8 right-8 z-10 bg-slate-900/90 backdrop-blur-md w-80 rounded-xl border border-slate-700 max-h-[50vh] flex flex-col pointer-events-auto shadow-2xl overflow-hidden">
+                    <div className="p-4 border-b border-slate-700 bg-slate-800/50">
+                        <h4 className="text-white font-bold text-sm uppercase tracking-widest">Engineering Allocation</h4>
+                        {(() => {
+                            const total = rd_manager.total_engineers || 0;
+                            const used = Object.values(rd_manager.active_projects || {}).reduce((a, b) => a + b, 0);
+                            return (
+                                <p className="text-xs text-slate-400 mt-1">
+                                    <span className={total - used > 0 ? 'text-f1green' : 'text-slate-500'}>{total - used}</span> / {total} Free Engineers
+                                </p>
+                            );
+                        })()}
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                        {Object.keys(rd_manager.active_projects || {}).length === 0 ? (
+                            <p className="text-slate-500 text-xs italic text-center py-4">No active projects.</p>
+                        ) : (
+                            Object.entries(rd_manager.active_projects).map(([nodeId, allocated]) => {
+                                const node = rawNodes.find(n => n.node_id === nodeId);
+                                if (!node) return null;
+                                return (
+                                    <div key={nodeId} className="bg-slate-800 rounded p-3 border border-slate-700">
+                                        <p className="text-sm font-bold text-f1accent truncate mb-2">{node.name}</p>
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-xs text-slate-400">Assigned:</span>
+                                            <div className="flex items-center gap-2">
+                                                <button
+                                                    onClick={() => handleAllocate(nodeId, allocated, -5)}
+                                                    className="w-6 h-6 rounded bg-slate-700 hover:bg-slate-600 flex items-center justify-center font-bold text-white transition-colors"
+                                                >-</button>
+                                                <span className="font-mono text-sm w-6 text-center">{allocated}</span>
+                                                <button
+                                                    onClick={() => handleAllocate(nodeId, allocated, 5)}
+                                                    className="w-6 h-6 rounded bg-slate-700 hover:bg-slate-600 flex items-center justify-center font-bold text-white transition-colors"
+                                                >+</button>
+                                            </div>
+                                        </div>
+                                        <div className="w-full bg-slate-900 rounded-full h-1 mt-3 overflow-hidden">
+                                            <div className="bg-f1accent h-full" style={{ width: `${(node.invested_work / node.base_workload) * 100}%` }}></div>
+                                        </div>
+                                    </div>
+                                );
+                            })
+                        )}
                     </div>
                 </div>
             </div>

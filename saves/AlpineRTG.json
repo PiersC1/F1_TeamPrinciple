@@ -4,7 +4,7 @@
     "difficulty": "Easy",
     "current_race_index": 0,
     "finance_manager": {
-        "balance": 210000000,
+        "balance": 140000000,
         "cost_cap": 140000000,
         "spent_under_cap": 0
     },
@@ -31,11 +31,9 @@
     "rd_manager": {
         "is_ai": false,
         "difficulty": "Easy",
-        "resource_points": 300,
+        "resource_points": 500,
         "total_engineers": 100,
-        "active_projects": {
-            "aero_research_l1": 100
-        },
+        "active_projects": {},
         "nodes": [
             {
                 "node_id": "aero_research_l1",
@@ -43,7 +41,7 @@
                 "description": "Comprehensive wind tunnel correlation program.",
                 "rp_cost": 200,
                 "base_workload": 100,
-                "state": "IN_PROGRESS",
+                "state": "AVAILABLE",
                 "invested_work": 0.0,
                 "effects": {
                     "aero.downforce": 5

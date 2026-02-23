@@ -13,6 +13,7 @@ const MainMenu = ({ onNavigate, refreshState }) => {
     const [selectedDriver1, setSelectedDriver1] = useState('');
     const [selectedDriver2, setSelectedDriver2] = useState('');
     const [competitiveness, setCompetitiveness] = useState('Midfield');
+    const [difficulty, setDifficulty] = useState('Normal');
     const [loading, setLoading] = useState(false);
     const [errorMsg, setErrorMsg] = useState('');
 
@@ -72,7 +73,7 @@ const MainMenu = ({ onNavigate, refreshState }) => {
             const res = await fetch('http://localhost:8000/api/new_game/existing', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ team_name: teamName, save_slot: saveSlotName })
+                body: JSON.stringify({ team_name: teamName, save_slot: saveSlotName, difficulty: difficulty })
             });
             if (res.ok) {
                 await refreshState();
@@ -103,6 +104,7 @@ const MainMenu = ({ onNavigate, refreshState }) => {
                     driver1_name: selectedDriver1,
                     driver2_name: selectedDriver2,
                     competitiveness: competitiveness,
+                    difficulty: difficulty,
                     save_slot: saveSlotName
                 })
             });
@@ -221,14 +223,35 @@ const MainMenu = ({ onNavigate, refreshState }) => {
 
                 {errorMsg && <p className="text-f1red mb-4">{errorMsg}</p>}
 
-                <div className="w-full bg-f1panel p-6 rounded-2xl border border-slate-700 mb-6">
-                    <label className="block text-slate-400 text-sm font-bold mb-2 uppercase tracking-wide">Save File Name</label>
-                    <input
-                        type="text"
-                        value={saveSlotName}
-                        onChange={e => setSaveSlotName(e.target.value)}
-                        className="w-full bg-slate-800 border border-slate-600 rounded-lg py-3 px-4 text-white focus:outline-none focus:border-f1accent mb-4"
-                    />
+                <div className="w-full bg-f1panel p-6 rounded-2xl border border-slate-700 mb-6 space-y-4">
+                    <div>
+                        <label className="block text-slate-400 text-sm font-bold mb-2 uppercase tracking-wide">Save File Name</label>
+                        <input
+                            type="text"
+                            value={saveSlotName}
+                            onChange={e => setSaveSlotName(e.target.value)}
+                            className="w-full bg-slate-800 border border-slate-600 rounded-lg py-3 px-4 text-white focus:outline-none focus:border-f1accent"
+                        />
+                    </div>
+                    <div className="pt-4 border-t border-slate-700">
+                        <label className="flex items-center gap-2 text-slate-400 text-sm font-bold mb-2 uppercase tracking-wide"><Settings size={16} /> Difficulty</label>
+                        <div className="grid grid-cols-3 gap-4">
+                            {['Easy', 'Normal', 'Hard'].map(tier => (
+                                <button
+                                    key={tier}
+                                    onClick={() => setDifficulty(tier)}
+                                    className={`p-3 rounded-lg border font-bold text-sm transition-all ${difficulty === tier ? 'bg-f1accent text-slate-900 border-f1accent' : 'bg-slate-800 text-slate-400 border-slate-600 hover:border-slate-400'}`}
+                                >
+                                    {tier}
+                                </button>
+                            ))}
+                        </div>
+                        <p className="text-xs text-slate-500 mt-3 text-center">
+                            {difficulty === 'Easy' && "Rival teams execute R&D slower."}
+                            {difficulty === 'Normal' && "Rival teams develop at a standard pace."}
+                            {difficulty === 'Hard' && "Rival teams execute R&D exceptionally fast."}
+                        </p>
+                    </div>
                 </div>
 
                 <div className="w-full grid grid-cols-2 gap-4">
@@ -284,24 +307,47 @@ const MainMenu = ({ onNavigate, refreshState }) => {
                         </div>
                     </div>
 
-                    <div className="pt-4 border-t border-slate-700">
-                        <label className="flex items-center gap-2 text-slate-400 text-sm font-bold mb-2 uppercase tracking-wide"><Settings size={16} /> Starting Competitiveness</label>
-                        <div className="grid grid-cols-3 gap-4">
-                            {['Backmarker', 'Midfield', 'Front Runner'].map(tier => (
-                                <button
-                                    key={tier}
-                                    onClick={() => setCompetitiveness(tier)}
-                                    className={`p-3 rounded-lg border font-bold text-sm transition-all ${competitiveness === tier ? 'bg-f1accent text-slate-900 border-f1accent' : 'bg-slate-800 text-slate-400 border-slate-600 hover:border-slate-400'}`}
-                                >
-                                    {tier}
-                                </button>
-                            ))}
+                    <div className="pt-4 border-t border-slate-700 space-y-6">
+                        <div>
+                            <label className="flex items-center gap-2 text-slate-400 text-sm font-bold mb-2 uppercase tracking-wide"><Settings size={16} /> Starting Competitiveness</label>
+                            <div className="grid grid-cols-3 gap-4">
+                                {['Backmarker', 'Midfield', 'Front Runner'].map(tier => (
+                                    <button
+                                        key={tier}
+                                        onClick={() => setCompetitiveness(tier)}
+                                        className={`p-3 rounded-lg border font-bold text-sm transition-all ${competitiveness === tier ? 'bg-f1accent text-slate-900 border-f1accent' : 'bg-slate-800 text-slate-400 border-slate-600 hover:border-slate-400'}`}
+                                    >
+                                        {tier}
+                                    </button>
+                                ))
+                                }
+                            </div>
+                            <p className="text-xs text-slate-500 mt-3 text-center">
+                                {competitiveness === 'Backmarker' && "Lowest car stats. Only $50M starting budget."}
+                                {competitiveness === 'Midfield' && "Average car stats. Standard $80M starting budget."}
+                                {competitiveness === 'Front Runner' && "High car stats. Maximum $140M starting budget."}
+                            </p>
                         </div>
-                        <p className="text-xs text-slate-500 mt-3 text-center">
-                            {competitiveness === 'Backmarker' && "Lowest car stats. Only $50M starting budget."}
-                            {competitiveness === 'Midfield' && "Average car stats. Standard $80M starting budget."}
-                            {competitiveness === 'Front Runner' && "High car stats. Maximum $140M starting budget."}
-                        </p>
+
+                        <div className="pt-4 border-t border-slate-700">
+                            <label className="flex items-center gap-2 text-slate-400 text-sm font-bold mb-2 uppercase tracking-wide"><Trophy size={16} /> Difficulty</label>
+                            <div className="grid grid-cols-3 gap-4">
+                                {['Easy', 'Normal', 'Hard'].map(tier => (
+                                    <button
+                                        key={tier}
+                                        onClick={() => setDifficulty(tier)}
+                                        className={`p-3 rounded-lg border font-bold text-sm transition-all ${difficulty === tier ? 'bg-f1accent text-slate-900 border-f1accent' : 'bg-slate-800 text-slate-400 border-slate-600 hover:border-slate-400'}`}
+                                    >
+                                        {tier}
+                                    </button>
+                                ))}
+                            </div>
+                            <p className="text-xs text-slate-500 mt-3 text-center">
+                                {difficulty === 'Easy' && "Rival teams execute R&D slower."}
+                                {difficulty === 'Normal' && "Rival teams develop at a standard pace."}
+                                {difficulty === 'Hard' && "Rival teams execute R&D exceptionally fast."}
+                            </p>
+                        </div>
                     </div>
 
                     <div className="pt-6">

@@ -4,11 +4,24 @@ from src.models.personnel.staff_member import StaffMember
 class TechnicalDirector(StaffMember):
     """Technical Director data model. Highly impacts R&D speed and cost efficiency."""
     
-    def __init__(self, name: str, salary: int, rating: int, aero_expertise: int, chassis_expertise: int, powertrain_expertise: int):
-        super().__init__(name, salary, rating)
+    def __init__(self, name: str, salary: int, rating: int, aero_expertise: int, chassis_expertise: int, powertrain_expertise: int, age: int = 45, contract_length_years: int = 2):
+        super().__init__(name, salary, rating, age, contract_length_years)
         self.aero_expertise = aero_expertise
         self.chassis_expertise = chassis_expertise
         self.powertrain_expertise = powertrain_expertise
+        
+    def process_weekly_aging(self):
+        """Technical Directors acquire knowledge long into their careers before retiring."""
+        super().process_weekly_aging()
+        import random
+        
+        # Determine dynamic stat growth or decline
+        if self.age < 55.0:
+            if random.random() < 0.04:
+                self.rating = min(100, self.rating + 1)
+        elif self.age > 65.0:
+            if random.random() < 0.08:
+                self.rating = max(1, self.rating - 1)
         
     def to_dict(self) -> Dict[str, Any]:
         data = super().to_dict()
@@ -27,7 +40,9 @@ class TechnicalDirector(StaffMember):
             rating=data.get("rating", 70),
             aero_expertise=data.get("aero_expertise", 70),
             chassis_expertise=data.get("chassis_expertise", 70),
-            powertrain_expertise=data.get("powertrain_expertise", 70)
+            powertrain_expertise=data.get("powertrain_expertise", 70),
+            age=data.get("age", 45),
+            contract_length_years=data.get("contract_length_years", 2)
         )
         td.id = data.get("id", td.id)
         return td

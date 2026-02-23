@@ -40,7 +40,7 @@ const RaceWeekend = ({ gameState, onNavigate, refreshState }) => {
     if (!gameState || !calendar) return <div className="p-8 text-center animate-pulse">Loading Track Data...</div>;
 
     // Failsafe if season is over somehow before we catch it on dashboard
-    if (gameState.current_race_index >= 10) {
+    if (!simResults && calendar && gameState.current_race_index >= calendar.length) {
         return (
             <div className="p-8 text-center">
                 <h1 className="text-3xl font-bold mb-4">Season Complete!</h1>
@@ -142,8 +142,8 @@ const RaceWeekend = ({ gameState, onNavigate, refreshState }) => {
                                             <td className="p-4 text-center font-bold text-slate-500">{i + 1}</td>
                                             <td className={`p-4 font-medium flex items-center gap-3 ${isPlayer ? 'text-white font-bold' : 'text-slate-300'}`}>
                                                 <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black border-2 ${r.compound === 'Soft' ? 'bg-f1red border-red-900 text-white' :
-                                                        r.compound === 'Medium' ? 'bg-yellow-500 border-yellow-800 text-slate-900' :
-                                                            'bg-white border-slate-300 text-slate-900'
+                                                    r.compound === 'Medium' ? 'bg-yellow-500 border-yellow-800 text-slate-900' :
+                                                        'bg-white border-slate-300 text-slate-900'
                                                     }`}>
                                                     {r.compound?.charAt(0) || '?'}
                                                 </div>

@@ -1,6 +1,6 @@
-# Game Utilities
+# Utils
 
-Contains standalone helper functions that are required globally but don't belong strictly to a class.
+The `utils/` directory contains helper scripts and backend infrastructure that don't directly model gameplay mechanics.
 
-*   `config_loader.py`: A legacy component for reading initialization files.
-*   `save_system.py`: Standalone scripts for writing dict dumps to JSON.
+## Key Utilities:
+- **`save_load_manager.py`**: An atomic I/O utility that reads and writes the massive, nested `GameState` dictionary to JSON files in the `saves/` root directory, enabling campaign persistence across server restarts.

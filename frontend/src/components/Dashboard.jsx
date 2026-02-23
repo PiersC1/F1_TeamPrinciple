@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Calendar, DollarSign, Activity, Users, Trophy, Star } from 'lucide-react';
 
 const Dashboard = ({ gameState, onNavigate, refreshState }) => {
@@ -9,6 +9,15 @@ const Dashboard = ({ gameState, onNavigate, refreshState }) => {
     // Get points dict from backend
     const driverPoints = championship_manager?.driver_standings || {};
     const teamPoints = championship_manager?.constructor_standings || {};
+
+    const [calendar, setCalendar] = useState(null);
+    useEffect(() => {
+        fetch('http://localhost:8000/api/calendar')
+            .then(res => res.json())
+            .then(data => setCalendar(data.tracks));
+    }, []);
+
+    const totalRaces = calendar ? calendar.length : 24;
 
     // Safety check in case the API hasn't returned yet
     const rawDrivers = gameState.drivers || [];
@@ -38,10 +47,31 @@ const Dashboard = ({ gameState, onNavigate, refreshState }) => {
         <div className="flex flex-col h-full space-y-6">
             <div className="flex justify-between items-center">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight text-white mb-1">Team Principal Dashboard</h1>
-                    <p className="text-slate-400">Season {season} | Race {Math.min(10, current_race_index + 1)} of 10</p>
+                    <div className="flex items-center gap-3 mb-1">
+                        <h1 className="text-3xl font-bold tracking-tight text-white">Team Principal Dashboard</h1>
+                        <span className="bg-slate-700 text-slate-300 text-xs font-bold px-2 py-1 rounded uppercase border border-slate-600">
+                            {gameState.difficulty || 'Normal'}
+                        </span>
+                    </div>
+                    <p className="text-slate-400">Season {season} | Race {Math.min(totalRaces, current_race_index + 1)} of {totalRaces}</p>
                 </div>
-                <div className="flex gap-4">
+                <div className="flex gap-4 items-center">
+                    <div className="flex flex-col items-end mr-2 text-sm bg-slate-800/80 px-4 py-2 rounded-xl border border-f1accent/30">
+                        <span className="text-f1accent font-bold text-base flex items-center gap-1">
+                            <Activity size={16} />
+                            {gameState.rd_manager?.resource_points || 0} RP
+                        </span>
+                        <span className="text-slate-400 text-xs flex items-center gap-1">
+                            <Users size={12} />
+                            {(() => {
+                                const total = gameState.rd_manager?.total_engineers || 0;
+                                const activeDict = gameState.rd_manager?.active_projects || {};
+                                const used = Object.values(activeDict).reduce((a, b) => a + b, 0);
+                                return `${total - used} / ${total} Free Eng.`;
+                            })()}
+                        </span>
+                    </div>
+
                     <button
                         onClick={() => onNavigate('rd')}
                         className="flex items-center gap-2 bg-f1panel hover:bg-slate-700 text-white px-6 py-3 rounded-xl transition-all border border-slate-700 shadow-lg"
@@ -50,7 +80,7 @@ const Dashboard = ({ gameState, onNavigate, refreshState }) => {
                     </button>
                     <button
                         onClick={async () => {
-                            if (current_race_index >= 10) {
+                            if (current_race_index >= totalRaces) {
                                 await fetch('http://localhost:8000/api/season/advance', { method: 'POST' });
                                 if (refreshState) refreshState();
                             } else {
@@ -59,7 +89,7 @@ const Dashboard = ({ gameState, onNavigate, refreshState }) => {
                         }}
                         className="flex items-center gap-2 bg-f1accent hover:bg-blue-400 text-slate-900 font-bold px-6 py-3 rounded-xl transition-all shadow-lg shadow-blue-900/50"
                     >
-                        <Calendar size={20} /> {current_race_index >= 10 ? "Start Year " + (season + 1) : "Advance to Next Race"}
+                        <Calendar size={20} /> {current_race_index >= totalRaces ? "Start Year " + (season + 1) : "Advance to Next Race"}
                     </button>
                 </div>
             </div>
@@ -108,6 +138,12 @@ const Dashboard = ({ gameState, onNavigate, refreshState }) => {
                                 <span className="px-2 py-1 bg-slate-700 text-xs rounded-md text-f1accent font-bold">OVR {d.rating}</span>
                             </div>
                         ))}
+                        <button
+                            onClick={() => onNavigate('staff')}
+                            className="w-full mt-4 bg-f1accent/10 hover:bg-f1accent/20 border border-f1accent/30 text-f1accent py-2 rounded-lg text-sm font-bold transition-colors"
+                        >
+                            Manage Staff Market
+                        </button>
                     </div>
                 </div>
             </div>

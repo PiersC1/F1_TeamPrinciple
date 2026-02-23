@@ -1,5 +1,7 @@
-# Headless Race Simulator
+# Simulators
 
-This module is the core mathematical engine of the game.
+The `simulators/` directory houses the math-heavy execution engines that run the core "gameplay" loop in a headless, deterministic manner.
 
-`race_simulator.py` receives a list of initialized driver and car objects, the current track, and a strategy profile. It has no dependencies on any UI framework. It processes the lap times based entirely on raw component ratings weighted against the circuit demands, and spits back the final race classification table to the calling function.
+## Key Simulators:
+- **`race_simulator.py`**: The crown jewel of the backend. It takes an array of `RaceEntry` objects (combining a Driver, Car, and Tire Strategy) and a `Track` object. 
+    It simulates a race lap-by-lap by calculating a base time from the track and car synergies, then modifying it with unpredictable variance, tire wear degradation, and pit stop logic based on the user's assigned strategy cue. It outputs a comprehensive `"race_log"` that the React frontend parses to physically animate the race playback.

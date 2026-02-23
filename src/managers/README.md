@@ -1,8 +1,8 @@
-# Game State Managers
+# Managers
 
-Managers act as the "controllers" in our architecture. They hold the application state and contain the business logic to mutate that state.
+The `managers/` directory contains the active controller classes that perform logic and mutate the data models.
 
-*   `championship_manager.py`: Tracks points awarded after race simulations and calculates the Driver and Constructor standings based on real F1 points rules.
-*   `finance_manager.py`: Enforces the Cost Cap.
-*   `rd_manager.py`: Tracks R&D progress via a node-based tech tree, unlocking dependencies and applying stat changes to the car.
-*   `save_load_manager.py`: Serializes the entire game state to and from JSON for save files.
+## Key Managers:
+- **`finance_manager.py`**: Handles checking budgets, deducting costs, and processing End-of-Season prize money payouts.
+- **`rd_manager.py`**: A complex parallel job scheduler. It tracks active engineering projects, accrues invested time (Resource Points), handles unlocking dependencies in the tech tree, and applies the physical stat bonuses to the attached `Car` model.
+- **`championship_manager.py`**: A ledger that tallies race results into the official Driver and Constructor Standings and keeps track of historical champions.

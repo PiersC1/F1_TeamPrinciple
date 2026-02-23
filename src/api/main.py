@@ -53,11 +53,23 @@ class RaceSimRequest(BaseModel):
 class RDBuyRequest(BaseModel):
     node_id: str
 
+class RDAllocateRequest(BaseModel):
+    node_id: str
+    new_amount: int
+
+class HireRequest(BaseModel):
+    slot: str
+    staff_id: str
+
+class FireRequest(BaseModel):
+    slot: str
+
 class LoadRequest(BaseModel):
     slot: str
 
 class NewGameExistingRequest(BaseModel):
     team_name: str
+    difficulty: str = "Normal"
     save_slot: str = "slot1"
 
 class NewGameCustomRequest(BaseModel):
@@ -65,6 +77,7 @@ class NewGameCustomRequest(BaseModel):
     driver1_name: str
     driver2_name: str
     competitiveness: str # "Backmarker", "Midfield", "Front Runner"
+    difficulty: str = "Normal"
     save_slot: str = "slot1"
 
 # --- API Endpoints ---
@@ -115,6 +128,7 @@ def new_game_existing(req: NewGameExistingRequest):
     team_data = db[req.team_name]
     game_state = GameState()
     game_state.team_name = req.team_name
+    game_state.difficulty = req.difficulty.capitalize()
     game_state.finance_manager.balance = team_data["budget"]
     game_state.car = team_data["car"]
     game_state.drivers = team_data["drivers"]
@@ -134,6 +148,7 @@ def new_game_custom(req: NewGameCustomRequest):
     global game_state, is_game_loaded
     game_state = GameState()
     game_state.team_name = req.team_name
+    game_state.difficulty = req.difficulty.capitalize()
     
     # 1. Grab Drivers
     pool = get_rookie_pool()
@@ -179,16 +194,21 @@ def get_calendar():
 
 @app.post("/api/season/advance")
 def advance_season():
-    """Ends the current season, records champions, clears points, and loops the calendar."""
+    """Ends the current season, records champions, clears points, and loops the calendar, paying out prize money."""
     global game_state, is_game_loaded
     if not is_game_loaded:
         raise HTTPException(status_code=400, detail="No active game loaded.")
         
+    # Calculate Prize Money
+    team_points = game_state.championship_manager.constructor_standings.get(game_state.team_name, 0)
+    prize_money = 50_000_000 + (team_points * 200_000)
+    game_state.finance_manager.balance += prize_money
+    
     game_state.championship_manager.end_season()
     game_state.season += 1
     game_state.current_race_index = 0
     save_manager.save_game("slot1", game_state.to_dict())
-    return {"status": "success"}
+    return {"status": "success", "prize_money": prize_money}
 
 @app.post("/api/cheat/money")
 def cheat_money():
@@ -200,19 +220,147 @@ def cheat_money():
 @app.post("/api/rd/start")
 def start_rd_project(request: RDBuyRequest):
     """Attempts to start an R&D project."""
-    node = game_state.rd_manager.nodes.get(request.node_id)
-    if not node:
-        raise HTTPException(status_code=404, detail="Node not found.")
+    if game_state.rd_manager.start_project(request.node_id):
+        save_manager.save_game("slot1", game_state.to_dict())
+        return {"status": "success"}
         
-    if node.state != "AVAILABLE":
-        raise HTTPException(status_code=400, detail="Project not available.")
+    raise HTTPException(status_code=400, detail="Not enough Resource Points or invalid node.")
+
+@app.post("/api/rd/allocate")
+def allocate_rd_project(request: RDAllocateRequest):
+    """Attempts to assign or unassign engineers to an active R&D project."""
+    if game_state.rd_manager.allocate_engineers(request.node_id, request.new_amount):
+        save_manager.save_game("slot1", game_state.to_dict())
+        return {"status": "success"}
         
-    if game_state.finance_manager.spend(node.cost):
-        if game_state.rd_manager.start_project(request.node_id):
-            save_manager.save_game("slot1", game_state.to_dict())
-            return {"status": "success"}
+    raise HTTPException(status_code=400, detail="Not enough free engineers or node not active.")
+
+# --- Staff Market Endpoints ---
+@app.get("/api/staff/market")
+def get_staff_market():
+    """Returns the available free agents."""
+    if not is_game_loaded:
+        raise HTTPException(status_code=400, detail="No active game loaded.")
+        
+    market = {}
+    for role, lst in game_state.staff_market.items():
+        market[role] = [s.to_dict() for s in lst]
+    return {"market": market}
+
+@app.post("/api/staff/hire")
+def hire_staff(req: HireRequest):
+    """Hires a staff member from the market and optionally fires/replaces the incumbent."""
+    # Find the target staff in the market
+    target_role = None
+    target_staff = None
+    
+    for r, lst in game_state.staff_market.items():
+        for s in lst:
+            if s.id == req.staff_id:
+                target_role = r
+                target_staff = s
+                break
+        if target_staff:
+            break
             
-    raise HTTPException(status_code=400, detail="Not enough funds or already researching.")
+    if not target_staff:
+        raise HTTPException(status_code=404, detail="Staff member not found in market.")
+        
+    # Determine the slot to replace
+    incumbent = None
+    if req.slot == "driver_0":
+        incumbent = game_state.drivers[0]
+    elif req.slot == "driver_1":
+        incumbent = game_state.drivers[1]
+    elif req.slot == "technical_director":
+        incumbent = game_state.technical_director
+    elif req.slot == "head_of_aero":
+        incumbent = game_state.head_of_aero
+    elif req.slot == "powertrain_lead":
+        incumbent = game_state.powertrain_lead
+    else:
+        raise HTTPException(status_code=400, detail="Invalid slot.")
+        
+    # Calculate costs
+    signing_bonus = int(target_staff.salary * 0.5)
+    severance = 0
+    if incumbent:
+        severance = int(incumbent.salary * incumbent.contract_length_years * 0.5)
+        
+    total_cost = signing_bonus + severance
+    
+    if not game_state.finance_manager.spend(total_cost):
+        raise HTTPException(status_code=400, detail=f"Cannot afford ${total_cost:,} total cost (Signing + Severance).")
+        
+    # Execute the swap
+    game_state.staff_market[target_role].remove(target_staff)
+    if incumbent:
+        # Put the incumbent back into the market
+        market_list_key = target_role # Will be the same type
+        if market_list_key not in game_state.staff_market:
+            game_state.staff_market[market_list_key] = []
+        game_state.staff_market[market_list_key].append(incumbent)
+        
+    # Assign the new staff
+    if req.slot == "driver_0":
+        game_state.drivers[0] = target_staff
+    elif req.slot == "driver_1":
+        game_state.drivers[1] = target_staff
+    elif req.slot == "technical_director":
+        game_state.technical_director = target_staff
+    elif req.slot == "head_of_aero":
+        game_state.head_of_aero = target_staff
+        game_state.relink_rd_manager()
+    elif req.slot == "powertrain_lead":
+        game_state.powertrain_lead = target_staff
+        game_state.relink_rd_manager()
+        
+    save_manager.save_game("slot1", game_state.to_dict())
+    return {"status": "success", "signing_bonus": signing_bonus, "severance": severance}
+
+@app.post("/api/staff/fire")
+def fire_staff(req: FireRequest):
+    """Fires a staff member without directly replacing them (if allowed). Drivers cannot be fired without replacement."""
+    if req.slot in ["driver_0", "driver_1"]:
+        raise HTTPException(status_code=400, detail="Drivers must be replaced via hiring, cannot be left empty.")
+        
+    incumbent = None
+    market_list_key = ""
+    
+    if req.slot == "technical_director":
+        incumbent = game_state.technical_director
+        market_list_key = "technical_directors"
+    elif req.slot == "head_of_aero":
+        incumbent = game_state.head_of_aero
+        market_list_key = "head_of_aero"
+    elif req.slot == "powertrain_lead":
+        incumbent = game_state.powertrain_lead
+        market_list_key = "powertrain_leads"
+    else:
+        raise HTTPException(status_code=400, detail="Invalid slot.")
+        
+    if not incumbent:
+        raise HTTPException(status_code=400, detail="Slot is already empty.")
+        
+    severance = int(incumbent.salary * incumbent.contract_length_years * 0.5)
+    if not game_state.finance_manager.spend(severance):
+        raise HTTPException(status_code=400, detail=f"Cannot afford ${severance:,} severance.")
+        
+    # Execute firing
+    game_state.staff_market[market_list_key].append(incumbent)
+    
+    if req.slot == "technical_director":
+        game_state.technical_director = None
+    elif req.slot == "head_of_aero":
+        game_state.head_of_aero = None
+        game_state.relink_rd_manager()
+    elif req.slot == "powertrain_lead":
+        game_state.powertrain_lead = None
+        game_state.relink_rd_manager()
+        
+    save_manager.save_game("slot1", game_state.to_dict())
+    return {"status": "success", "severance": severance}
+
 
 @app.post("/api/race/simulate")
 def simulate_race(request: RaceSimRequest):
@@ -257,9 +405,10 @@ def simulate_race(request: RaceSimRequest):
     # Payout Points
     game_state.championship_manager.score_points(results["standings"])
     
-    # Time progression
+    # Time progression (Player & AI)
+    game_state.advance_week()
+    
     game_state.current_race_index += 1
-    game_state.rd_manager.advance_time(1)
     
     save_manager.save_game("slot1", game_state.to_dict())
 

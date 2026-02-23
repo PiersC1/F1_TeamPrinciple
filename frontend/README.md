@@ -1,9 +1,20 @@
-# Frontend Development Hub
+# F1 Team Principal Frontend
 
-This directory contains the entire React + Vite client for the F1 Team Principal game. It is a completely decoupled frontend that communicates with the Python backend solely through a REST API.
+This is the React web application that serves as the graphical user interface for the F1 Team Principal simulator.
 
 ## Tech Stack
-*   **Vite:** Blazing fast build tool and development server.
-*   **React:** For building UI components.
-*   **Tailwind CSS (v3.4):** For utility-first styling, featuring custom `f1accent`, `f1red`, etc.
-*   **Lucide-React:** For crisp, scalable SVG icons.
+*   **Framework**: React (Bootstrapped via Vite)
+*   **Styling**: Tailwind CSS
+*   **Icons**: Lucide React
+*   **Specialized Libraries**: `@xyflow/react` (For rendering the interactive R&D Tech Tree dependency graph)
+
+## Getting Started
+To run the frontend, ensure the Python backend `FastAPI` server is already running on port 8000. 
+
+Then execute:
+```bash
+npm install
+npm run dev
+```
+
+The app will typically be available at `http://localhost:5173`.

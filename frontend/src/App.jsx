@@ -3,6 +3,7 @@ import MainMenu from './components/MainMenu';
 import Dashboard from './components/Dashboard';
 import RDTree from './components/RDTree';
 import RaceWeekend from './components/RaceWeekend';
+import StaffMarket from './components/StaffMarket';
 
 function App() {
   const [gameState, setGameState] = useState(null);
@@ -63,6 +64,7 @@ function App() {
         {currentView === 'dashboard' && <Dashboard gameState={gameState} onNavigate={setCurrentView} refreshState={fetchState} />}
         {currentView === 'rd' && <RDTree gameState={gameState} onNavigate={setCurrentView} refreshState={fetchState} />}
         {currentView === 'race' && <RaceWeekend gameState={gameState} onNavigate={setCurrentView} refreshState={fetchState} />}
+        {currentView === 'staff' && <StaffMarket gameState={gameState} onNavigate={setCurrentView} refreshState={fetchState} />}
       </main>
     </div>
   );

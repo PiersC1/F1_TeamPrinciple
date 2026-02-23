@@ -6,14 +6,14 @@ class RDNode:
     Contains requirements, costs, exact target stat tradeoffs, and tracking logic.
     """
     
-    def __init__(self, node_id: str, name: str, description: str, cost: int, time_to_complete: int, effects: Dict[str, int]):
+    def __init__(self, node_id: str, name: str, description: str, rp_cost: int, base_workload: int, effects: Dict[str, int]):
         self.node_id = node_id
         self.name = name
         self.description = description
         
         # Requirements & Locks
-        self.cost = cost
-        self.base_time_to_complete = time_to_complete # Base time in "Weeks" or "Races"
+        self.rp_cost = rp_cost
+        self.base_workload = base_workload # Total engineer-hours required
         self.dependencies: List[str] = [] # List of node_ids that must be completed first
         self.mutually_exclusive: List[str] = [] # List of node_ids this locks out when chosen
         
@@ -23,7 +23,7 @@ class RDNode:
         
         # State
         self.state = "LOCKED" # LOCKED, AVAILABLE, IN_PROGRESS, COMPLETED, MUTUALLY_LOCKED
-        self.progress_time = 0 
+        self.invested_work = 0.0 
         
     def add_dependency(self, node_id: str):
         self.dependencies.append(node_id)
@@ -37,11 +37,10 @@ class RDNode:
             "node_id": self.node_id,
             "name": self.name,
             "description": self.description,
-            "cost": self.cost,
-            "time_to_complete": self.base_time_to_complete,
-            "base_time_to_complete": self.base_time_to_complete,
+            "rp_cost": self.rp_cost,
+            "base_workload": self.base_workload,
             "state": self.state,
-            "progress_time": self.progress_time,
+            "invested_work": self.invested_work,
             "effects": self.effects,
             "dependencies": self.dependencies,
             "mutually_exclusive": self.mutually_exclusive
@@ -49,4 +48,4 @@ class RDNode:
         
     def load_from_dict(self, data: Dict[str, Any]):
         self.state = data.get("state", "LOCKED")
-        self.progress_time = data.get("progress_time", 0)
+        self.invested_work = data.get("invested_work", 0.0)
