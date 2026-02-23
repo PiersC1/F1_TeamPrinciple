@@ -60,7 +60,7 @@ function App() {
       {/* Main View Area */}
       <main className="flex-1 overflow-y-auto">
         {currentView === 'main_menu' && <MainMenu onNavigate={setCurrentView} refreshState={fetchState} />}
-        {currentView === 'dashboard' && <Dashboard gameState={gameState} onNavigate={setCurrentView} />}
+        {currentView === 'dashboard' && <Dashboard gameState={gameState} onNavigate={setCurrentView} refreshState={fetchState} />}
         {currentView === 'rd' && <RDTree gameState={gameState} onNavigate={setCurrentView} refreshState={fetchState} />}
         {currentView === 'race' && <RaceWeekend gameState={gameState} onNavigate={setCurrentView} refreshState={fetchState} />}
       </main>

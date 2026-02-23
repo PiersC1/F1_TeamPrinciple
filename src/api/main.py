@@ -119,6 +119,9 @@ def new_game_existing(req: NewGameExistingRequest):
     game_state.car = team_data["car"]
     game_state.drivers = team_data["drivers"]
     
+    # Ensure R&D is linked to this team's car!
+    game_state.relink_rd_manager()
+    
     # Prunes the AI opponents
     game_state.initialize_ai_grid()
     
@@ -158,6 +161,9 @@ def new_game_custom(req: NewGameCustomRequest):
         game_state.car.powertrain.power_output = 75; game_state.car.powertrain.reliability = 70
         game_state.finance_manager.balance = 50_000_000
     
+    # Ensure R&D is linked to this new car object
+    game_state.relink_rd_manager()
+
     # Setup grid
     game_state.initialize_ai_grid()
         
@@ -170,6 +176,19 @@ def get_calendar():
     """Returns the static 10-race calendar with track metadata."""
     calendar = TrackDatabase.get_calendar()
     return {"tracks": [t.to_dict() for t in calendar]}
+
+@app.post("/api/season/advance")
+def advance_season():
+    """Ends the current season, records champions, clears points, and loops the calendar."""
+    global game_state, is_game_loaded
+    if not is_game_loaded:
+        raise HTTPException(status_code=400, detail="No active game loaded.")
+        
+    game_state.championship_manager.end_season()
+    game_state.season += 1
+    game_state.current_race_index = 0
+    save_manager.save_game("slot1", game_state.to_dict())
+    return {"status": "success"}
 
 @app.post("/api/cheat/money")
 def cheat_money():

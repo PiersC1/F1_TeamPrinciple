@@ -51,14 +51,14 @@ class RaceSimulator:
         # Max theoretical rating per module is roughly 200 * weight. Average total around 600.
         weighted_car_perf = aero_perf + chassis_perf + powertrain_perf
         
-        # Normalize back to a 100-scale roughly
-        normalized_car_perf = min(100.0, weighted_car_perf / 6)
+        # Normalize back to a 100-scale roughly (can now exceed 100 for ultimate teams)
+        normalized_car_perf = weighted_car_perf / 6
         
         driver_speed = entry.driver.speed # 1-100
         driver_consist = entry.driver.consistency # 1-100
         
         # The higher the rating, the more seconds we subtract from the base lap time
-        car_advantage = (normalized_car_perf / 100) * 3.5 
+        car_advantage = (normalized_car_perf / 100) * 4.75 
         driver_advantage = (driver_speed / 100) * 2.0
         
         # Consistency affects the randomness of the lap

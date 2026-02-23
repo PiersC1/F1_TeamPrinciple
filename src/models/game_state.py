@@ -24,7 +24,11 @@ class GameState:
         self.technical_director: TechnicalDirector | None = None
         self.season = 1
         self.current_race_index = 0
-        self.ai_teams = {} # Populated later
+        self.ai_teams: Dict[str, Dict[str, Any]] = {} # Populated later
+        
+    def relink_rd_manager(self):
+        """Ensures the R&D manager is pointing to the active car object (fix for ghost car bug)."""
+        self.rd_manager.car = self.car
         
     def initialize_ai_grid(self):
         """Builds the AI opposition, ensuring the player's team is excluded."""
@@ -60,6 +64,7 @@ class GameState:
             "technical_director": self.technical_director.to_dict() if self.technical_director else None,
             "ai_teams": {
                 name: {
+                    "car": data["car"].to_dict(),
                     "drivers": [d.to_dict() for d in data["drivers"]]
                 }
                 for name, data in self.ai_teams.items()
@@ -75,8 +80,16 @@ class GameState:
         self.season = data.get("season", 1)
         self.current_race_index = data.get("current_race_index", 0)
         
-        # Build the grid now that we know the loaded team name
-        self.initialize_ai_grid()
+        # Only build first-time if not in data
+        if "ai_teams" not in data:
+            self.initialize_ai_grid()
+        else:
+            self.ai_teams = {}
+            for name, team_data in data["ai_teams"].items():
+                self.ai_teams[name] = {
+                    "car": Car.from_dict(team_data["car"]),
+                    "drivers": [Driver.from_dict(d) for d in team_data["drivers"]]
+                }
         
         if "finance_manager" in data:
             self.finance_manager = FinanceManager.from_dict(data["finance_manager"])
@@ -86,7 +99,7 @@ class GameState:
             
         if "car" in data:
             self.car = Car.from_dict(data["car"])
-            self.rd_manager = RDManager(self.car) # Reset manager with new car reference
+            self.relink_rd_manager()
             
         if "rd_manager" in data:
             self.rd_manager.load_from_dict(data["rd_manager"])

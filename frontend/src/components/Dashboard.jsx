@@ -1,7 +1,7 @@
 import React from 'react';
-import { Calendar, DollarSign, Activity, Users, Trophy } from 'lucide-react';
+import { Calendar, DollarSign, Activity, Users, Trophy, Star } from 'lucide-react';
 
-const Dashboard = ({ gameState, onNavigate }) => {
+const Dashboard = ({ gameState, onNavigate, refreshState }) => {
     if (!gameState) return <div className="p-8 text-center animate-pulse">Loading Telemetry...</div>;
 
     const { finance_manager, car, season, current_race_index, championship_manager } = gameState;
@@ -31,7 +31,7 @@ const Dashboard = ({ gameState, onNavigate }) => {
         const aero = car.aero.downforce + car.aero.drag_efficiency;
         const chass = car.chassis.weight_reduction + car.chassis.tire_preservation;
         const power = car.powertrain.power_output + car.powertrain.reliability;
-        return Math.min(100, Math.round((aero + chass + power) / 6));
+        return Math.round((aero + chass + power) / 6);
     };
 
     return (
@@ -39,7 +39,7 @@ const Dashboard = ({ gameState, onNavigate }) => {
             <div className="flex justify-between items-center">
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight text-white mb-1">Team Principal Dashboard</h1>
-                    <p className="text-slate-400">Season {season} | Race {current_race_index + 1} of 10</p>
+                    <p className="text-slate-400">Season {season} | Race {Math.min(10, current_race_index + 1)} of 10</p>
                 </div>
                 <div className="flex gap-4">
                     <button
@@ -49,10 +49,17 @@ const Dashboard = ({ gameState, onNavigate }) => {
                         <Activity size={20} className="text-f1accent" /> Research & Development
                     </button>
                     <button
-                        onClick={() => onNavigate('race')}
+                        onClick={async () => {
+                            if (current_race_index >= 10) {
+                                await fetch('http://localhost:8000/api/season/advance', { method: 'POST' });
+                                if (refreshState) refreshState();
+                            } else {
+                                onNavigate('race');
+                            }
+                        }}
                         className="flex items-center gap-2 bg-f1accent hover:bg-blue-400 text-slate-900 font-bold px-6 py-3 rounded-xl transition-all shadow-lg shadow-blue-900/50"
                     >
-                        <Calendar size={20} /> Advance to Next Race
+                        <Calendar size={20} /> {current_race_index >= 10 ? "Start Year " + (season + 1) : "Advance to Next Race"}
                     </button>
                 </div>
             </div>
@@ -118,7 +125,11 @@ const Dashboard = ({ gameState, onNavigate }) => {
                                 <div key={item.name} className={`flex items-center justify-between p-2 rounded-lg ${isPlayer ? 'bg-f1accent/10 border border-f1accent/30' : 'hover:bg-slate-800/30'}`}>
                                     <div className="flex items-center gap-4">
                                         <span className={`w-6 text-center font-bold ${index === 0 ? 'text-yellow-500' : 'text-slate-500'}`}>{index + 1}</span>
-                                        <span className={`font-medium ${isPlayer ? 'text-white' : 'text-slate-200'}`}>{item.name} {isPlayer && <span className="ml-2 text-xs text-f1accent border border-f1accent rounded px-1">YOU</span>}</span>
+                                        <span className={`font-medium ${isPlayer ? 'text-white' : 'text-slate-200'}`}>
+                                            {item.name}
+                                            {isPlayer && <span className="ml-2 text-xs text-f1accent border border-f1accent rounded px-1">YOU</span>}
+                                            {item.name === championship_manager?.last_driver_champion && <Star size={14} className="inline ml-2 text-yellow-500 fill-yellow-500" />}
+                                        </span>
                                     </div>
                                     <span className={`font-bold ${item.pts > 0 ? (isPlayer ? 'text-white' : 'text-f1accent') : 'text-slate-600'}`}>{item.pts} pts</span>
                                 </div>
@@ -138,7 +149,11 @@ const Dashboard = ({ gameState, onNavigate }) => {
                                 <div key={item.name} className={`flex items-center justify-between p-2 rounded-lg ${isPlayer ? 'bg-f1accent/10 border border-f1accent/30' : 'hover:bg-slate-800/30'}`}>
                                     <div className="flex items-center gap-4">
                                         <span className={`w-6 text-center font-bold ${index === 0 ? 'text-yellow-500' : 'text-slate-500'}`}>{index + 1}</span>
-                                        <span className={`font-medium ${isPlayer ? 'text-white' : 'text-slate-200'}`}>{item.name} {isPlayer && <span className="ml-2 text-xs text-f1accent border border-f1accent rounded px-1">YOU</span>}</span>
+                                        <span className={`font-medium ${isPlayer ? 'text-white' : 'text-slate-200'}`}>
+                                            {item.name}
+                                            {isPlayer && <span className="ml-2 text-xs text-f1accent border border-f1accent rounded px-1">YOU</span>}
+                                            {item.name === championship_manager?.last_constructor_champion && <Star size={14} className="inline ml-2 text-yellow-500 fill-yellow-500" />}
+                                        </span>
                                     </div>
                                     <span className={`font-bold ${item.pts > 0 ? (isPlayer ? 'text-white' : 'text-f1accent') : 'text-slate-600'}`}>{item.pts} pts</span>
                                 </div>

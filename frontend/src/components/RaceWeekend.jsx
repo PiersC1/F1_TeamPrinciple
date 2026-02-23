@@ -140,8 +140,15 @@ const RaceWeekend = ({ gameState, onNavigate, refreshState }) => {
                                     return (
                                         <tr key={r.driver} className={`hover:bg-slate-800/30 transition-all duration-300 ${isPlayer ? "bg-f1accent/10 border-l-4 border-f1accent" : ""}`}>
                                             <td className="p-4 text-center font-bold text-slate-500">{i + 1}</td>
-                                            <td className={`p-4 font-medium line-clamp-1 ${isPlayer ? 'text-white font-bold' : 'text-slate-300'}`}>
-                                                {r.driver} {isPlayer && <span className="ml-2 text-[10px] text-slate-900 bg-f1accent rounded px-1.5 py-0.5 uppercase tracking-wider">YOU</span>}
+                                            <td className={`p-4 font-medium flex items-center gap-3 ${isPlayer ? 'text-white font-bold' : 'text-slate-300'}`}>
+                                                <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black border-2 ${r.compound === 'Soft' ? 'bg-f1red border-red-900 text-white' :
+                                                        r.compound === 'Medium' ? 'bg-yellow-500 border-yellow-800 text-slate-900' :
+                                                            'bg-white border-slate-300 text-slate-900'
+                                                    }`}>
+                                                    {r.compound?.charAt(0) || '?'}
+                                                </div>
+                                                <span className="truncate">{r.driver}</span>
+                                                {isPlayer && <span className="text-[10px] text-slate-900 bg-f1accent rounded px-1.5 py-0.5 uppercase tracking-wider shrink-0">YOU</span>}
                                             </td>
                                             <td className="p-4 text-slate-400 hidden md:table-cell">{r.team}</td>
                                             <td className="p-4 text-center hidden sm:table-cell">
